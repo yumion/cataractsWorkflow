@@ -35,31 +35,32 @@ steps = ['Toric Marking', 'Implant Ejection', 'Incision', 'Viscodilatation', 'Ca
          'Manual Aspiration', 'Implantation', 'Positioning', 'OVD Aspiration', 'Suturing', 'Sealing Control',
          'Wound Hydratation']
 
+
 def fix_outliers(truth_data_steps, prediction_data_steps):
 
     steps_order = [truth_data_steps[0]]
     for step_index in range(len(truth_data_steps)):
-        if step_index != 0 and truth_data_steps[step_index] != truth_data_steps[step_index-1]:
+        if step_index != 0 and truth_data_steps[step_index] != truth_data_steps[step_index - 1]:
             steps_order.append(truth_data_steps[step_index])
 
     k = 0
     for i in range(len(truth_data_steps)):
 
-        if i !=0 and truth_data_steps[i] != truth_data_steps[i-1]:
+        if i != 0 and truth_data_steps[i] != truth_data_steps[i - 1]:
             k = k + 1
 
-        if truth_data_steps[i] == 0: # check for idle step
+        if truth_data_steps[i] == 0:  # check for idle step
             if truth_data_steps[i] != prediction_data_steps[i]:
-                list_values_to_check = [steps_order[k], steps_order[k+1]] if k==0 else ([steps_order[k-1],
-                                                                                         steps_order[k]] if k==len(steps_order)-1 else
-                                                                                        [steps_order[k-1],
-                                                                                         steps_order[k],
-                                                                                        steps_order[k + 1]])
+                list_values_to_check = [steps_order[k], steps_order[k + 1]] if k == 0 else ([steps_order[k - 1],
+                                                                                             steps_order[k]] if k == len(steps_order) - 1 else
+                                                                                            [steps_order[k - 1],
+                                                                                             steps_order[k],
+                                                                                             steps_order[k + 1]])
                 if prediction_data_steps[i] in list_values_to_check:
                     prediction_data_steps[i] = truth_data_steps[i]
 
-
     return truth_data_steps, prediction_data_steps
+
 
 def main():
     """
@@ -67,11 +68,11 @@ def main():
     """
     # parsing the command line
     parser = ArgumentParser(
-        description = 'Evaluation script for the EndoVis / CATARACTS 2020 challenge.')
-    parser.add_argument('-t', '--gt', required = True,
-                        help = 'directory containing ground truth files')
-    parser.add_argument('-p', '--predictions', required = True,
-                        help = 'directory containing automatic predictions')
+        description='Evaluation script for the EndoVis / CATARACTS 2020 challenge.')
+    parser.add_argument('-t', '--gt', required=True,
+                        help='directory containing ground truth files')
+    parser.add_argument('-p', '--predictions', required=True,
+                        help='directory containing automatic predictions')
 
     num_steps = len(steps) + 1
     args = parser.parse_args()
@@ -100,7 +101,7 @@ def main():
                 prediction_data_steps = prediction_data.iloc[:, 1].tolist()
 
                 # We don't take into account the idle frames
-                #idle_frames = list(filter(lambda x: truth_data_steps[x] == 0, range(len(truth_data_steps))))
+                # idle_frames = list(filter(lambda x: truth_data_steps[x] == 0, range(len(truth_data_steps))))
 
                 # To reduce the impact of the idle step on the results.
                 truth_data_steps, prediction_data_steps = fix_outliers(truth_data_steps, prediction_data_steps)
@@ -113,7 +114,7 @@ def main():
                 # prediction_data_steps = np.delete(prediction_data_steps, idle_frames, 0)
 
                 # Removing the idle class from the evaluation
-                truth_data_steps = truth_data_steps[:,1:]
+                truth_data_steps = truth_data_steps[:, 1:]
                 prediction_data_steps = prediction_data_steps[:, 1:]
 
                 steps_f1_score = []
@@ -134,13 +135,13 @@ def main():
             else:
                 raise ValueError(file_name + ' could not be found in the predictions folder.')
 
-
     except Exception as e:
         print('Error: {} -> {}.'.format(file_name, e))
         f1_scores = []
 
     # computing the average score
     print('** Average: ' + "{:.4f}".format(np.mean(f1_scores)))
+
 
 if __name__ == "__main__":
     main()
