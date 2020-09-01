@@ -1,0 +1,11 @@
+# MacOS
+.DS_Store
+
+# notebooks check[pint
+.ipynb_checkpoints/
+
+# dataset
+train/
+validation/
+
+
