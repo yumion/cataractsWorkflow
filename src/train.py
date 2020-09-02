@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass, field, asdict
-from typing import List, Tuple, Union, Optional
+from typing import List, Union, Optional
 import yaml
 
 import numpy as np
@@ -214,7 +214,7 @@ class Config:
     WIDTH: int = 640
     SKIP_FRAME: int = 30
 
-    EPOCHS: int = 100
+    EPOCHS: int = 30
     BATCH_SIZE: int = 8
     LR: float = 0.0001
     OPTIMIZER: str = 'AdamW'

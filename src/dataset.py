@@ -40,10 +40,6 @@ class ClassificationVideoDataset(BaseDataset):
         ret, frame = cap.read()
         cap.release()
 
-        # if frame can't be read, return False
-        if ret is False:
-            return False, False
-
         # switch BGR to RGB
         image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         # cast to onehot
@@ -80,7 +76,7 @@ class ClassificationVideoDataset(BaseDataset):
                 next(reader)  # skip header
                 for row in reader:
                     # cast `str` to `int`
-                    frame_id = int(row[0])
+                    frame_id = int(row[0]) - 1  # cv2では0番目から始まるのでずらす
                     class_id = int(row[1])
                     # if set skip_frame, decrease FPS
                     if skip_frame == 0 or frame_id % skip_frame == 0:
