@@ -25,9 +25,11 @@ def main(config):
 
     # create segmentation model with pretrained encoder
     model = getattr(models, config.MODEL)(
-        classes=config.N_CLASSES,
+        num_classes=config.N_CLASSES,
     )
-    # model = torch.nn.DataParallel(model)
+    if config.MULTI:
+        model = torch.nn.DataParallel(model)
+        print('training with multi GPU')
 
     # create loss function
     loss = getattr(losses, config.LOSS)(
@@ -69,6 +71,7 @@ def main(config):
         classes=config.CLASSES,
         skip_frame=config.SKIP_FRAME,
     )
+    config.NUM_TRAINING = len(train_dataset)
     print('number of train data:', len(train_dataset))
 
     valid_dataset = ClassificationVideoDataset(
@@ -78,7 +81,12 @@ def main(config):
         classes=config.CLASSES,
         skip_frame=config.SKIP_FRAME,
     )
+    config.NUM_VALIDATION = len(valid_dataset)
     print('number of validation data:', len(valid_dataset))
+
+    # overwrite settings yaml for update number of data for training and validation
+    with open(os.path.join(config.RESULT_DIR, 'parameters.yml'), 'w') as fw:
+        fw.write(yaml.dump(asdict(config)))
 
     train_loader = DataLoader(
         train_dataset,
@@ -187,9 +195,10 @@ def main(config):
 @dataclass
 class Config:
     DEVICE: str = 'cuda'
+    MULTI: bool = False
     SEED: int = 1
 
-    RESULT_DIR: str = '/data1/github/MICCAI2020/cataractsWorkflow/result/cnn_only'
+    RESULT_DIR: str = '/data1/github/MICCAI2020/cataractsWorkflow/result/cnn_only/efficientnetb7'
 
     DATA_DIR: str = '/data1/github/MICCAI2020/cataractsWorkflow/data'
     TRAINING_DIRS: list = field(default_factory=list)
@@ -198,15 +207,15 @@ class Config:
     CLASSES: Union[list, dict] = field(default_factory=dict)
     N_CLASSES: int = 1 + 18
 
-    MODEL: str = 'EfficientNetB0'
-    LOSS: str = 'CategoricalFocalLoss'
+    MODEL: str = 'EfficientNetB7'
+    LOSS: str = 'OnehotCrossEntropyLoss'
     loss_params: dict = field(default_factory=dict)
     HEIGHT: int = 360
     WIDTH: int = 640
     SKIP_FRAME: int = 30
 
     EPOCHS: int = 100
-    BATCH_SIZE: int = 32
+    BATCH_SIZE: int = 8
     LR: float = 0.0001
     OPTIMIZER: str = 'AdamW'
     optim_params: dict = field(default_factory=dict)
@@ -218,6 +227,10 @@ class Config:
     TRAINING_AUGORATION: list = field(default_factory=list)
     VALIDATION_AUGORATION: list = field(default_factory=list)
 
+    # number of data
+    NUM_TRAINING: int = field(default_factory=int)
+    NUM_VALIDATION: int = field(default_factory=int)
+
     def __post_init__(self):
         '''list, dictはこちらで追記する'''
         # class mapping
@@ -228,7 +241,13 @@ class Config:
             'Wound Hydratation'
         ]
 
-        # optimizer params
+        # loss parameters
+        # self.loss_params = {
+        #     'alpha': 0.25,
+        #     'gamma': 2.,
+        # }
+
+        # optimizer parameters
         self.optim_params = {
             'weight_decay': 1e-5,
         }
@@ -257,42 +276,44 @@ class Config:
 
         self.TRAINING_DIRS = [
             'train/01',
-            # 'train/02',
-            # 'train/03',
-            # 'train/04',
-            # 'train/05',
-            # 'train/06',
-            # 'train/07',
-            # 'train/08',
-            # 'train/09',
-            # 'train/10',
-            # 'train/11',
-            # 'train/12',
-            # 'train/13',
-            # 'train/14',
-            # 'train/15',
-            # 'train/16',
-            # 'train/17',
-            # 'train/18',
-            # 'train/19',
+            'train/02',
+            'train/03',
+            'train/04',
+            'train/05',
+            'train/06',
+            'train/07',
+            'train/08',
+            'train/09',
+            'train/10',
+            'train/11',
+            'train/12',
+            'train/13',
+            'train/14',
+            'train/15',
+            'train/16',
+            'train/17',
+            'train/18',
+            'train/19',
         ]
 
         self.VALIDATION_DIRS = [
             'train/20',
-            # 'train/21',
-            # 'train/22',
-            # 'train/23',
-            # 'train/24',
-            # 'train/25',
+            'train/21',
+            'train/22',
+            'train/23',
+            'train/24',
+            'train/25',
         ]
 
 
 if __name__ == '__main__':
     from pprint import pprint
+    # for weights download
     import ssl
     ssl._create_default_https_context = ssl._create_unverified_context
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    # 0:TITAN V,1:Quadro RTX8000, 2: TITAN RTX
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
     config = Config()
 

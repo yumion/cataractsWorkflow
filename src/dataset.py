@@ -25,7 +25,7 @@ class ClassificationVideoDataset(BaseDataset):
         # read all videos as a path
         self.annotations = self._get_annotation_set(video_dirs, skip_frame)
         # convert str names to class values(keep orders)
-        self.class_values = [self.CLASSES.index(cls_name.lower()) for cls_name in classes]
+        self.class_values = [self.CLASSES.index(cls_name) for cls_name in classes]
 
         self.augmentation = augmentation
         self.preprocessing = preprocessing
@@ -38,6 +38,7 @@ class ClassificationVideoDataset(BaseDataset):
         cap = cv2.VideoCapture(video_path)
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_id)
         ret, frame = cap.read()
+        cap.release()
 
         # if frame can't be read, return False
         if ret is False:
@@ -48,8 +49,7 @@ class ClassificationVideoDataset(BaseDataset):
         # cast to onehot
         # classesで渡したclassのみ学習させる
         label = [(class_id == v) for v in self.class_values]
-        label = np.asarray(label, dtype='float32')
-        label = np.concatenate([[0], label])  # add others class
+        label = np.concatenate([[0], label]).astype(np.float32)  # add others class(as mentioned `Idle`)
 
         # apply augmentations
         if self.augmentation:
@@ -77,7 +77,7 @@ class ClassificationVideoDataset(BaseDataset):
             # merge all videos as `[video_path, frame_id, class_id]`
             with open(csv_path) as fr:
                 reader = csv.reader(fr)
-                header = next(reader)  # skip header
+                next(reader)  # skip header
                 for row in reader:
                     # cast `str` to `int`
                     frame_id = int(row[0])

@@ -4,7 +4,11 @@
 # notebooks check[pint
 .ipynb_checkpoints/
 
+# python bins
+__pycache__/
+
 # dataset
 data/
+result/
 
 
