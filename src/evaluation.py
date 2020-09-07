@@ -77,7 +77,7 @@ def main():
     num_steps = len(steps) + 1
     args = parser.parse_args()
 
-    list_truth_files = glob.glob(os.path.join(args.gt, "*.csv"))
+    list_truth_files = sorted(glob.glob(os.path.join(args.gt, "*.csv")))
 
     assert len(list_truth_files) > 0, "No ground truth files were found!!"
 
@@ -91,14 +91,14 @@ def main():
 
                 # parsing the right columns for the current tool
                 truth_data = read_csv(truth_filename, header=0, skipinitialspace=True, squeeze=True, dtype='Int64')
-                prediction_data = read_csv(prediction_filename, header=None, skipinitialspace=True, squeeze=True, dtype='Int64')
+                prediction_data = read_csv(prediction_filename, header=0, skipinitialspace=True, squeeze=True, dtype='Int64')
 
                 if len(truth_data) != len(prediction_data):
                     raise ValueError('Files {} and {} have different row counts'.
                                      format(truth_filename, prediction_filename))
 
                 truth_data_steps = truth_data["Steps"].tolist()
-                prediction_data_steps = prediction_data.iloc[:, 1].tolist()
+                prediction_data_steps = prediction_data["Steps"].tolist()
 
                 # We don't take into account the idle frames
                 # idle_frames = list(filter(lambda x: truth_data_steps[x] == 0, range(len(truth_data_steps))))

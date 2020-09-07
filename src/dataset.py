@@ -84,3 +84,64 @@ class ClassificationVideoDataset(BaseDataset):
                             [video_path, frame_id, class_id]
                         )
         return annotations
+
+
+class VideoPredictDataset(BaseDataset):
+
+    def __init__(
+            self,
+            video_dir,
+            augmentation=None,
+            preprocessing=None,
+            skip_frame=1,
+    ):
+        # open video capture
+        self.video_path = glob(os.path.join(video_dir, '*.mp4'))[0]
+        self.video = cv2.VideoCapture(self.video_path)
+        self.frame_ids = self._get_frame_ids(self.video, skip_frame)
+
+        self.augmentation = augmentation
+        self.preprocessing = preprocessing
+        self.skip_frame = skip_frame
+
+    def __getitem__(self, i):
+
+        # set reading frame on video
+        frame_id = self.frame_ids[i]
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, frame_id)
+        ret, frame = self.video.read()
+
+        # finish read frame, release capture
+        if ret is False or i == self.__len__():
+            self.video.release()
+            return
+
+        # switch BGR to RGB
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # apply augmentations
+        if self.augmentation:
+            sample = self.augmentation(image=image)
+            image = sample['image']
+
+        # apply preprocessing
+        if self.preprocessing:
+            sample = self.preprocessing(image=image)
+            image = sample['image']
+
+        return frame_id, image
+
+    def __len__(self):
+        return len(self.frame_ids)
+
+    def _get_frame_ids(self, cap, skip_frame=1):
+        """select frames for test
+        """
+        frame_ids = []
+        # if skip_frame == 1, use all frames(so, just `int(cap.get(cv2.CAP_PROP_FRAME_COUNT))`)
+        for frame_id in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))):
+            # start frame # is `0`
+            # if set skip_frame, decrease FPS
+            if skip_frame == 0 or frame_id % skip_frame == 0:
+                frame_ids.append(frame_id)
+        return frame_ids

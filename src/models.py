@@ -6,35 +6,35 @@ from resnest.torch.resnet import ResNet, Bottleneck
 """EfficientNet"""
 
 
-def efficientnetb0(num_classes):
+def efficientnetb0(num_classes, **kwargs):
     return EfficientNet.from_pretrained('efficientnet-b0', num_classes=num_classes)
 
 
-def efficientnetb1(num_classes):
+def efficientnetb1(num_classes, **kwargs):
     return EfficientNet.from_pretrained('efficientnet-b1', num_classes=num_classes)
 
 
-def efficientnetb2(num_classes):
+def efficientnetb2(num_classes, **kwargs):
     return EfficientNet.from_pretrained('efficientnet-b2', num_classes=num_classes)
 
 
-def efficientnetb3(num_classes):
+def efficientnetb3(num_classes, **kwargs):
     return EfficientNet.from_pretrained('efficientnet-b3', num_classes=num_classes)
 
 
-def efficientnetb4(num_classes):
+def efficientnetb4(num_classes, **kwargs):
     return EfficientNet.from_pretrained('efficientnet-b4', num_classes=num_classes)
 
 
-def efficientnetb5(num_classes):
+def efficientnetb5(num_classes, **kwargs):
     return EfficientNet.from_pretrained('efficientnet-b5', num_classes=num_classes)
 
 
-def efficientnetb6(num_classes):
+def efficientnetb6(num_classes, **kwargs):
     return EfficientNet.from_pretrained('efficientnet-b6', num_classes=num_classes)
 
 
-def efficientnetb7(num_classes):
+def efficientnetb7(num_classes, **kwargs):
     return EfficientNet.from_pretrained('efficientnet-b7', num_classes=num_classes)
 
 

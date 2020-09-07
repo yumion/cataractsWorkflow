@@ -20,12 +20,13 @@ from augmentations import get_augmentation_wrapper
 
 def main(config):
     # set dataset path
-    x_train_dir = [os.path.join(config.DATA_DIR, train_dir) for train_dir in config.TRAINING_DIRS]
-    x_valid_dir = [os.path.join(config.DATA_DIR, train_dir) for train_dir in config.VALIDATION_DIRS]
+    x_train_dirs = [os.path.join(config.DATA_DIR, train_dir) for train_dir in config.TRAINING_DIRS]
+    x_valid_dirs = [os.path.join(config.DATA_DIR, train_dir) for train_dir in config.VALIDATION_DIRS]
 
     # create segmentation model with pretrained encoder
     model = getattr(models, config.MODEL)(
         num_classes=config.N_CLASSES,
+        pretrained=False,
     )
     if config.MULTI:
         model = torch.nn.DataParallel(model)
@@ -36,13 +37,12 @@ def main(config):
         **config.loss_params
     )
 
-    # set metrics
+    # set metrics(except `Idle` class)
     metrics = [
-        utils.metrics.Accuracy(),
-        utils.metrics.Precision(),
-        utils.metrics.Recall(),
-        utils.metrics.Fscore(),
-        utils.metrics.IoU(),
+        utils.metrics.Accuracy(ignore_channels=[0]),
+        utils.metrics.Precision(ignore_channels=[0]),
+        utils.metrics.Recall(ignore_channels=[0]),
+        utils.metrics.Fscore(ignore_channels=[0]),
     ]
 
     # set optimizer
@@ -65,7 +65,7 @@ def main(config):
     validation_augmentation = get_augmentation_wrapper(config.VALIDATION_AUGORATION)
 
     train_dataset = ClassificationVideoDataset(
-        x_train_dir,
+        x_train_dirs,
         augmentation=training_augmentation(height=config.HEIGHT, width=config.WIDTH),
         preprocessing=get_preprocessing(preprocessing_fn),
         classes=config.CLASSES,
@@ -75,7 +75,7 @@ def main(config):
     print('number of train data:', len(train_dataset))
 
     valid_dataset = ClassificationVideoDataset(
-        x_valid_dir,
+        x_valid_dirs,
         augmentation=validation_augmentation(height=config.HEIGHT, width=config.WIDTH),
         preprocessing=get_preprocessing(preprocessing_fn),
         classes=config.CLASSES,
@@ -134,8 +134,6 @@ def main(config):
         'val_recall': [],
         'fscore': [],
         'val_fscore': [],
-        'jaccard': [],
-        'val_jaccard': [],
     }
 
     # callbacks用
@@ -160,8 +158,6 @@ def main(config):
         loggers['val_recall'].append(valid_logs['recall'])
         loggers['fscore'].append(train_logs['fscore'])
         loggers['val_fscore'].append(valid_logs['fscore'])
-        loggers['jaccard'].append(train_logs['iou_score'])
-        loggers['val_jaccard'].append(valid_logs['iou_score'])
 
         # save logs to csv
         df = pd.DataFrame(loggers)
@@ -173,7 +169,6 @@ def main(config):
         plot_logs(loggers, 'precision', config.RESULT_DIR)
         plot_logs(loggers, 'recall', config.RESULT_DIR)
         plot_logs(loggers, 'fscore', config.RESULT_DIR)
-        plot_logs(loggers, 'jaccard', config.RESULT_DIR)
 
         ## callbacks (save model, change lr, etc.) ##
         # model checkpoint
@@ -198,8 +193,6 @@ class Config:
     MULTI: bool = False
     SEED: int = 1
 
-    RESULT_DIR: str = '/data1/github/MICCAI2020/cataractsWorkflow/result/cnn_only/efficientnetb7'
-
     DATA_DIR: str = '/data1/github/MICCAI2020/cataractsWorkflow/data'
     TRAINING_DIRS: list = field(default_factory=list)
     VALIDATION_DIRS: list = field(default_factory=list)
@@ -207,7 +200,7 @@ class Config:
     CLASSES: Union[list, dict] = field(default_factory=dict)
     N_CLASSES: int = 1 + 18
 
-    MODEL: str = 'EfficientNetB7'
+    MODEL: str = 'resnest50'
     LOSS: str = 'OnehotCrossEntropyLoss'
     loss_params: dict = field(default_factory=dict)
     HEIGHT: int = 360
@@ -230,6 +223,8 @@ class Config:
     # number of data
     NUM_TRAINING: int = field(default_factory=int)
     NUM_VALIDATION: int = field(default_factory=int)
+
+    RESULT_DIR: str = f"/data1/github/MICCAI2020/cataractsWorkflow/result/cnn_only/{MODEL}"
 
     def __post_init__(self):
         '''list, dictはこちらで追記する'''
@@ -276,33 +271,33 @@ class Config:
 
         self.TRAINING_DIRS = [
             'train/01',
-            'train/02',
-            'train/03',
-            'train/04',
-            'train/05',
-            'train/06',
-            'train/07',
-            'train/08',
-            'train/09',
-            'train/10',
-            'train/11',
-            'train/12',
-            'train/13',
-            'train/14',
-            'train/15',
-            'train/16',
-            'train/17',
-            'train/18',
-            'train/19',
+            # 'train/02',
+            # 'train/03',
+            # 'train/04',
+            # 'train/05',
+            # 'train/06',
+            # 'train/07',
+            # 'train/08',
+            # 'train/09',
+            # 'train/10',
+            # 'train/11',
+            # 'train/12',
+            # 'train/13',
+            # 'train/14',
+            # 'train/15',
+            # 'train/16',
+            # 'train/17',
+            # 'train/18',
+            # 'train/19',
         ]
 
         self.VALIDATION_DIRS = [
             'train/20',
-            'train/21',
-            'train/22',
-            'train/23',
-            'train/24',
-            'train/25',
+            # 'train/21',
+            # 'train/22',
+            # 'train/23',
+            # 'train/24',
+            # 'train/25',
         ]
 
 
@@ -313,7 +308,7 @@ if __name__ == '__main__':
     ssl._create_default_https_context = ssl._create_unverified_context
 
     # 0:TITAN V,1:Quadro RTX8000, 2: TITAN RTX
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
     config = Config()
 
