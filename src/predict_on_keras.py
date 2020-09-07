@@ -4,7 +4,7 @@ import yaml
 import csv
 from tqdm import tqdm
 import numpy as np
-from tensorflow import keras
+import tensorflow as tf
 import albumentations as albu
 
 from dataset import VideoPredictDataset
@@ -31,7 +31,7 @@ def get_preprocessing(preprocessing_fn):
 
 def main(config):
     # load best saved checkpoint
-    best_model = keras.models.load_model(config.TRAINED_MODEL)
+    best_model = tf.keras.models.load_model(config.TRAINED_MODEL)
 
     # create Dataset and DataLoader
     preprocessing_fn = normalization
@@ -82,16 +82,16 @@ def main(config):
 class Config:
     DEVICE: str = 'cuda'
 
-    DATA_DIR: str = '/mnt/cloudy_z/input/cataractsWorkflow'
+    DATA_DIR: str = '/data1/github/MICCAI2020/cataractsWorkflow/data'
     TEST_DIRS: list = field(default_factory=list)
 
-    RESULT_DIR: str = "/mnt/cloudy_z/src/atsushi/farmer/example/result/cataractsWorkflow/tf-xception-skipframe=1/predict"
-    TRAINED_MODEL: str = "//mnt/cloudy_z/src/atsushi/farmer/example/result/cataractsWorkflow/tf-xception-skipframe=1/model/best_model.h5"
+    RESULT_DIR: str = "/data1/github/MICCAI2020/cataractsWorkflow/result/cnn_only/tf-xception-skipframe=1/predict"
+    TRAINED_MODEL: str = "/data1/github/MICCAI2020/cataractsWorkflow/result/cnn_only/tf-xception-skipframe=1/model/best_model.h5"
 
     # input data config
     HEIGHT: int = 640
     WIDTH: int = 360
-    SKIP_FRAME: int = 300
+    SKIP_FRAME: int = 1
     # augmentation
     TEST_AUGORATION: list = field(default_factory=list)
 
@@ -102,12 +102,16 @@ class Config:
         ]
 
         self.TEST_DIRS = [
-            'train/20',
             # 'train/21',
             # 'train/22',
             # 'train/23',
             # 'train/24',
             # 'train/25',
+            'validation/01',
+            'validation/02',
+            'validation/03',
+            'validation/04',
+            'validation/05',
         ]
 
 
@@ -117,8 +121,15 @@ if __name__ == '__main__':
     import ssl
     ssl._create_default_https_context = ssl._create_unverified_context
 
-    # 0:TITAN V,1:Quadro RTX8000, 2: TITAN RTX
+    # 0:TITAN V, 1:Quadro RTX8000, 2: TITAN RTX
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
+    # GPUメモリ使用量を抑える
+    physical_devices = tf.config.experimental.list_physical_devices('GPU')
+    if len(physical_devices) > 0:
+        for k in range(len(physical_devices)):
+            tf.config.experimental.set_memory_growth(physical_devices[k], True)
+            print('memory growth: ', tf.config.experimental.get_memory_growth(physical_devices[k]))
 
     config = Config()
 
