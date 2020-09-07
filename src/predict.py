@@ -27,8 +27,9 @@ def main(config):
     # set augmentation
     test_augmentation = get_augmentation_wrapper(config.TEST_AUGORATION)
 
-    # set dataset path
+    # predict each videos
     for test_dir in config.TEST_DIRS:
+        # set dataset
         test_dataset = VideoPredictDataset(
             os.path.join(config.DATA_DIR, test_dir),
             augmentation=test_augmentation(height=config.HEIGHT, width=config.WIDTH),
@@ -36,19 +37,25 @@ def main(config):
             skip_frame=config.SKIP_FRAME,
         )
         video_name = os.path.basename(test_dataset.video_path)
-        print(video_name)
-        print('number of test data:', len(test_dataset))
+        print('test on ', video_name)
+        print('# of frame:', len(test_dataset))
 
         # predict per frame
         results = []
         for frame_id, image in tqdm(test_dataset):
-            x_tensor = torch.from_numpy(image[np.newaxis]).to(config.DEVICE)
+            # cast to tensor
+            x_tensor = torch.from_numpy(image[np.newaxis]).to(config.DEVICE)  # (1,C,H,W)
             # inference
             with torch.no_grad():
-                prediction = best_model.forward(x_tensor)
+                prediction = best_model.forward(x_tensor)  # (1,C)
+                # cast to ndarray
                 prediction = prediction.cpu().numpy().round()
-                predicted_label = np.argmax(prediction, axis=1).squeeze()
-            results.append([frame_id + 1, predicted_label])  # 答えのframe_idが1から始まるのでずらす
+                # cast from onehot to class_id
+                predicted_label = np.argmax(prediction, axis=1).squeeze()  # (1,)
+
+            # if apply `skip_frame`, padding previous label
+            for i in range(config.SKIP_FRAME):
+                results.append([frame_id + 1 + i, predicted_label])  # 答えのframe_idが1から始まるのでずらす
 
         # save prediction as csv
         save_dir = os.path.join(config.RESULT_DIR, test_dir)
