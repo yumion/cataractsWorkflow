@@ -1,6 +1,5 @@
 import os
 from dataclasses import dataclass, field, asdict
-from typing import List, Union, Optional
 import yaml
 import csv
 from tqdm import tqdm
