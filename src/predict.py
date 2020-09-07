@@ -37,8 +37,8 @@ def main(config):
             skip_frame=config.SKIP_FRAME,
         )
         video_name = os.path.basename(test_dataset.video_path)
-        print('test on ', video_name)
-        print('# of frame:', len(test_dataset))
+        print('test on', video_name)
+        print(f'number of frame: {len(test_dataset)} / {test_dataset.num_frames}')
 
         # predict per frame
         results = []
@@ -55,6 +55,9 @@ def main(config):
 
             # if apply `skip_frame`, padding previous label
             for i in range(config.SKIP_FRAME):
+                # if last frame of video is over, stop padding
+                if frame_id + 1 + i > test_dataset.num_frames:
+                    break
                 results.append([frame_id + 1 + i, predicted_label])  # 答えのframe_idが1から始まるのでずらす
 
         # save prediction as csv
