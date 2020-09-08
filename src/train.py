@@ -18,10 +18,7 @@ from augmentations import get_augmentation_wrapper
 
 
 def main(config):
-    # set dataset path
-    x_train_dirs = [os.path.join(config.DATA_DIR, train_dir) for train_dir in config.TRAINING_DIRS]
-    x_valid_dirs = [os.path.join(config.DATA_DIR, train_dir) for train_dir in config.VALIDATION_DIRS]
-
+    ### model settings ###
     # create segmentation model with pretrained encoder
     model = getattr(models, config.MODEL)(
         num_classes=config.N_CLASSES,
@@ -56,12 +53,17 @@ def main(config):
         **config.scheduler_params
     )
 
-    # create Dataset and DataLoader
-    preprocessing_fn = normalization
+    ### data provider settings ###
+    # set dataset path
+    x_train_dirs = [os.path.join(config.DATA_DIR, train_dir) for train_dir in config.TRAINING_DIRS]
+    x_valid_dirs = [os.path.join(config.DATA_DIR, train_dir) for train_dir in config.VALIDATION_DIRS]
 
     # set augmentation
     training_augmentation = get_augmentation_wrapper(config.TRAINING_AUGORATION)
     validation_augmentation = get_augmentation_wrapper(config.VALIDATION_AUGORATION)
+
+    # create Dataset and DataLoader
+    preprocessing_fn = normalization
 
     train_dataset = ClassificationVideoDataset(
         x_train_dirs,
@@ -101,8 +103,8 @@ def main(config):
         num_workers=4,
     )
 
+    ### Trainer ###
     # create epoch runners
-    # it is a simple loop of iterating over dataloader's samples
     train_epoch = utils.train.TrainEpoch(
         model,
         loss=loss,
@@ -135,7 +137,7 @@ def main(config):
         'val_fscore': [],
     }
 
-    # callbacks用
+    # for callbacks
     max_score = 0
 
     for i in range(0, config.EPOCHS):
