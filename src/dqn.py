@@ -8,6 +8,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 import matplotlib.pyplot as plt
 
+from env import ProcedureMaze
+
 
 """## 2.価値に基づく手法 (Value-based Methods)
 価値に基づく手法では，価値に基づいて行動を決定する方策を利用します．
@@ -23,26 +25,7 @@ import matplotlib.pyplot as plt
 SARSAとQ-learningでTDターゲット$y_t$の求め方が異なります．$$y^{SARSA}_t = r_{t+1}+\gamma Q^{\pi}(s_{t+1},a_{t+1})$$$$y^{Q-learning}_t = r_{t+1}+\gamma \max_{a'}Q^{\pi}(s_{t+1},a')$$
   - $\gamma$：**割引率**
 
-"""
 
-
-def discretize_state(observation, num_discretize):
-    # 状態を離散化して対応するインデックスを返す関数
-    # （binの上限・下限はcartpole環境固有のものを用いています）
-    def bins(clip_min, clip_max, num):
-        return np.linspace(clip_min, clip_max, num + 1)[1:-1]
-
-    c_pos, c_v, p_angle, p_v = observation
-    discretized = [
-        np.digitize(c_pos, bins=bins(-2.4, 2.4, num_discretize)),
-        np.digitize(c_v, bins=bins(-3.0, 3.0, num_discretize)),
-        np.digitize(p_angle, bins=bins(-0.5, 0.5, num_discretize)),
-        np.digitize(p_v, bins=bins(-2.0, 2.0, num_discretize))
-    ]
-    return sum([x * (num_discretize**i) for i, x in enumerate(discretized)])
-
-
-"""
 #### 2.2.1 Deep Q-Network（DQN）
 DQN（Deep Q-Network）は，Q関数をNNによって近似した手法です．Q-learningのTD誤差は，$$\delta_t = r_{t+1}+\gamma \max_{a'}Q^{\pi}(s_{t+1},a') - Q^{\pi}(s_t,a_t)$$であるので，$r_{t+1}+\gamma \max_{a'}Q^{\pi}(s_{t+1},a')$と$Q^{\pi}(s_t,a_t)$の差の最小化をすればいいことがわかります．
 - 今回の実装ではMSEを用いています．
