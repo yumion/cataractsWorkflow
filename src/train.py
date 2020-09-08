@@ -205,7 +205,7 @@ class Config:
     loss_params: dict = field(default_factory=dict)
     HEIGHT: int = 360
     WIDTH: int = 640
-    SKIP_FRAME: int = 30
+    SKIP_FRAME: int = 1
 
     EPOCHS: int = 30
     BATCH_SIZE: int = 8
@@ -271,33 +271,33 @@ class Config:
 
         self.TRAINING_DIRS = [
             'train/01',
-            # 'train/02',
-            # 'train/03',
-            # 'train/04',
-            # 'train/05',
-            # 'train/06',
-            # 'train/07',
-            # 'train/08',
-            # 'train/09',
-            # 'train/10',
-            # 'train/11',
-            # 'train/12',
-            # 'train/13',
-            # 'train/14',
-            # 'train/15',
-            # 'train/16',
-            # 'train/17',
-            # 'train/18',
-            # 'train/19',
+            'train/02',
+            'train/03',
+            'train/04',
+            'train/05',
+            'train/06',
+            'train/07',
+            'train/08',
+            'train/09',
+            'train/10',
+            'train/11',
+            'train/12',
+            'train/13',
+            'train/14',
+            'train/15',
+            'train/16',
+            'train/17',
+            'train/18',
+            'train/19',
         ]
 
         self.VALIDATION_DIRS = [
             'train/20',
-            # 'train/21',
-            # 'train/22',
-            # 'train/23',
-            # 'train/24',
-            # 'train/25',
+            'train/21',
+            'train/22',
+            'train/23',
+            'train/24',
+            'train/25',
         ]
 
 
