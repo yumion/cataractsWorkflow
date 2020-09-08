@@ -100,7 +100,7 @@ class VideoPredictDataset(BaseDataset):
         self.video = cv2.VideoCapture(self.video_path)
         self.num_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
         # select frames using test
-        self.frame_ids = self._get_frame_ids(self.video, skip_frame)
+        self.frame_ids = self._get_frame_ids(self.num_frames, skip_frame)
 
         self.augmentation = augmentation
         self.preprocessing = preprocessing
@@ -136,12 +136,12 @@ class VideoPredictDataset(BaseDataset):
     def __len__(self):
         return len(self.frame_ids)
 
-    def _get_frame_ids(self, cap, skip_frame=1):
+    def _get_frame_ids(self, num_frames, skip_frame=1):
         """select frames for test
         """
         frame_ids = [
             frame_id for frame_id in range(
-                0, self.num_frames,  # start frame # is `0`
+                0, num_frames,  # start frame # is `0`
                 skip_frame  # if skip_frame == 1, use all frames(so, just `int(cap.get(cv2.CAP_PROP_FRAME_COUNT))`)
             )
         ]

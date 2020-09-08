@@ -1,5 +1,4 @@
 import torch
-from segmentation_models_pytorch.utils import functional as F
 from segmentation_models_pytorch.utils import base
 from utils import take_channels
 
@@ -9,22 +8,6 @@ class L1Loss(torch.nn.L1Loss, base.Loss):
 
 
 class MSELoss(torch.nn.MSELoss, base.Loss):
-    pass
-
-
-class CrossEntropyLoss(torch.nn.CrossEntropyLoss, base.Loss):
-    pass
-
-
-class NLLLoss(torch.nn.NLLLoss, base.Loss):
-    pass
-
-
-class BCELoss(torch.nn.BCELoss, base.Loss):
-    pass
-
-
-class BCEWithLogitsLoss(torch.nn.BCEWithLogitsLoss, base.Loss):
     pass
 
 
@@ -58,7 +41,7 @@ class CategoricalFocalLoss(base.Loss):
         )
 
 
-class OnehotCrossEntropyLoss(base.Loss):
+class CrossEntropyLossWithOnehot(base.Loss):
 
     def __init__(self, class_weights=None, reduction='mean', activation=None, ignore_channels=None, **kwargs):
         super().__init__(**kwargs)
@@ -80,22 +63,23 @@ class OnehotCrossEntropyLoss(base.Loss):
 def categorical_focal_loss(pr, gt, gamma=2.0, alpha=0.25, ignore_channels=None, eps=1e-7, **kwargs):
     """Implementation of Focal Loss from the paper in multiclass classification
     Formula:
-        loss = - gt * alpha * ((1 - pr)^gamma) * log(pr)
+        CE Loss(pt) = -log(pt)
+        FL Loss(pt) = -(1 - pt)^gamma * log(pt)
     Args:
-        gt: ground truth 4D tensor (B, C, H, W)
-        pr: prediction 4D tensor (B, C, H, W)
+        gt: ground truth 4D tensor (B, C)
+        pr: prediction 4D tensor (B, C)
         alpha: the same as weighting factor in balanced cross entropy, default 0.25
         gamma: focusing parameter for modulating factor (1-p), default 2.0
         ignore_channels: Optional integer or list of integers, classes to consider, if ``None`` all classes are used.
     """
-
-    gt, pr = take_channels(gt, pr, ignore_channels=ignore_channels, **kwargs)
-    # clip to prevent NaN's and Inf's
-    pr = torch.clamp(pr, eps, 1.0 - eps)
+    gt, pr = take_channels(gt, pr, ignore_channels=ignore_channels, **kwargs)  # (N,C)
+    # for get `pt`
+    ce_loss = categorical_crossentropy_loss(pr, gt, reduction='none')  # (N,)
+    pt = torch.exp(-ce_loss)  # (N,)
     # Calculate focal loss
-    loss = - gt * (alpha * torch.pow((1 - pr), gamma) * torch.log(pr + eps))
+    fl_loss = alpha * torch.pow((1 - pt), gamma) * ce_loss  # (N,)
 
-    return torch.mean(loss)
+    return torch.mean(fl_loss)
 
 
 def categorical_crossentropy_loss(pr, gt, class_weights=None, reduction='mean', ignore_channels=None, eps=1e-7, **kwargs):

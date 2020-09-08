@@ -67,6 +67,7 @@ def resnest50(num_classes, pretrained=True, **kwargs):
     if pretrained:
         model.load_state_dict(torch.hub.load_state_dict_from_url(
             resnest_model_urls['resnest50'], progress=True, check_hash=True))
+        print(model)
     return model
 
 

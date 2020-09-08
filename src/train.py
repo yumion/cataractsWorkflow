@@ -5,7 +5,6 @@ import yaml
 
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 import albumentations as albu
@@ -26,7 +25,7 @@ def main(config):
     # create segmentation model with pretrained encoder
     model = getattr(models, config.MODEL)(
         num_classes=config.N_CLASSES,
-        pretrained=False,
+        # pretrained=False,
     )
     if config.MULTI:
         model = torch.nn.DataParallel(model)
@@ -201,16 +200,16 @@ class Config:
     N_CLASSES: int = 1 + 18
 
     MODEL: str = 'resnest50'
-    LOSS: str = 'OnehotCrossEntropyLoss'
+    LOSS: str = 'CrossEntropyLossWithOnehot'
     loss_params: dict = field(default_factory=dict)
     HEIGHT: int = 360
     WIDTH: int = 640
-    SKIP_FRAME: int = 1
+    SKIP_FRAME: int = 600
 
-    EPOCHS: int = 30
+    EPOCHS: int = 3
     BATCH_SIZE: int = 8
     LR: float = 0.0001
-    OPTIMIZER: str = 'AdamW'
+    OPTIMIZER: str = 'Adam'
     optim_params: dict = field(default_factory=dict)
     SCHEDULER: str = 'ReduceLROnPlateau'  # 'ReduceLROnPlateau' or 'CosineAnnealingLR'
     scheduler_params: dict = field(default_factory=dict)
@@ -243,9 +242,9 @@ class Config:
         # }
 
         # optimizer parameters
-        self.optim_params = {
-            'weight_decay': 1e-5,
-        }
+        # self.optim_params = {
+        #     'weight_decay': 1e-5,
+        # }
 
         # learning rate scheduler parameters
         # cosine decay
@@ -271,33 +270,33 @@ class Config:
 
         self.TRAINING_DIRS = [
             'train/01',
-            'train/02',
-            'train/03',
-            'train/04',
-            'train/05',
-            'train/06',
-            'train/07',
-            'train/08',
-            'train/09',
-            'train/10',
-            'train/11',
-            'train/12',
-            'train/13',
-            'train/14',
-            'train/15',
-            'train/16',
-            'train/17',
-            'train/18',
-            'train/19',
+            # 'train/02',
+            # 'train/03',
+            # 'train/04',
+            # 'train/05',
+            # 'train/06',
+            # 'train/07',
+            # 'train/08',
+            # 'train/09',
+            # 'train/10',
+            # 'train/11',
+            # 'train/12',
+            # 'train/13',
+            # 'train/14',
+            # 'train/15',
+            # 'train/16',
+            # 'train/17',
+            # 'train/18',
+            # 'train/19',
         ]
 
         self.VALIDATION_DIRS = [
             'train/20',
-            'train/21',
-            'train/22',
-            'train/23',
-            'train/24',
-            'train/25',
+            # 'train/21',
+            # 'train/22',
+            # 'train/23',
+            # 'train/24',
+            # 'train/25',
         ]
 
 
@@ -308,7 +307,7 @@ if __name__ == '__main__':
     ssl._create_default_https_context = ssl._create_unverified_context
 
     # 0:TITAN V,1:Quadro RTX8000, 2: TITAN RTX
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
     config = Config()
 
