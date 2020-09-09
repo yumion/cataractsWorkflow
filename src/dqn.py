@@ -1,7 +1,8 @@
 import numpy as np
 import copy
 from collections import deque
-import gym
+from tqdm import tqdm
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -139,6 +140,7 @@ class DqnAgent:
 if __name__ == '__main__':
 
     # 各種設定
+    csv_file = '/data1/github/MICCAI2020/cataractsWorkflow/data/train/01/train01.csv'
     num_episode = 300  # 学習エピソード数
     memory_size = 50000  # replay bufferの大きさ
     initial_memory_size = 500  # 最初に貯めるランダムな遷移の数
@@ -147,9 +149,7 @@ if __name__ == '__main__':
     episode_rewards = []
     num_average_epidodes = 10
 
-    env = gym.make('CartPole-v0')
-    max_steps = env.spec.max_episode_steps  # エピソードの最大ステップ数
-
+    env = ProcedureMaze(csv_file=csv_file, skip_frame=1)
     agent = DqnAgent(env.observation_space.shape[0], env.action_space.n, memory_size=memory_size)
 
     # 最初にreplay bufferにランダムな行動をしたときのデータを入れる
@@ -170,7 +170,9 @@ if __name__ == '__main__':
     for episode in range(num_episode):
         state = env.reset()  # envからは4次元の連続値の観測が返ってくる
         episode_reward = 0
-        for t in range(max_steps):
+        done = False
+
+        while not done:
             action = agent.get_action(state, episode)  # 行動を選択
             next_state, reward, done, _ = env.step(action)
             episode_reward += reward
@@ -184,8 +186,7 @@ if __name__ == '__main__':
             agent.replay_buffer.append(transition)
             agent.update_q()  # Q関数を更新
             state = next_state
-            if done:
-                break
+
         episode_rewards.append(episode_reward)
         if episode % 20 == 0:
             print("Episode %d finished | Episode reward %f" % (episode, episode_reward))
@@ -196,23 +197,35 @@ if __name__ == '__main__':
     plt.title('DQN: average rewards in %d episodes' % num_average_epidodes)
     plt.xlabel('episode')
     plt.ylabel('rewards')
-    plt.show()
+    # plt.show()
+    plt.savefig('train_rewards.png')
 
     env.close()
 
     # 最終的に得られた方策のテスト（可視化）
-    env = gym.make('CartPole-v0')
-    frames = []
-    for episode in range(5):
+    for episode in range(1):
+        env = ProcedureMaze(csv_file=csv_file, skip_frame=1)
+        frames = []
+
         state = env.reset()
-        frames.append(env.render(mode='rgb_array'))
+        frames.append(env.render(mode='human'))
         done = False
         while not done:
             action = agent.get_greedy_action(state)
             state, reward, done, _ = env.step(action)
-            frames.append(env.render(mode='rgb_array'))
-    env.close()
+            frames.append(env.render(mode='human'))
 
-    plt.figure(figsize=(frames[0].shape[1] / 72.0, frames[0].shape[0] / 72.0), dpi=72)
-    patch = plt.imshow(frames[0])
-    plt.axis('off')
+        preds = []
+        targets = []
+        for frame in frames[:]:
+            preds.append(frame[0])
+            targets.append(frame[1])
+
+        plt.figure(figsize=(12, 6))
+        plt.yticks(np.arange(0, 19, 1))
+        plt.plot(preds)
+        plt.plot(targets)
+        # plt.show()
+        plt.savefig(f'test_pred{episode}.png')
+
+        env.close()
