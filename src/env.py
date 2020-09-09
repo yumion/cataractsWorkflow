@@ -5,86 +5,102 @@ import gym
 
 
 class ProcedureMaze(gym.Env):
-    metadata = {'render.modes': ['human', 'ansi']}
+    metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, csv_file):
+    def __init__(self, csv_file, skip_frame=1):
+        """`action_space`, `observation_space`, `reward_range` are necessary
+        """
         super().__init__()
-        self.map = self._generate_map(csv_file)
-        # action_space, observation_space, reward_range を設定する
+        # 予測結果から迷路を生成
+        self.maze = self._generate_maze(csv_file, skip_frame)
+
         self.action_space = gym.spaces.Discrete(19)  # classes: 18 + 1
-        self.observation_space = gym.spaces.Box(2)  # (frame, task)
-        self.reward_range = [-1., 100.]
-        self._reset()
+        self.observation_space = gym.spaces.Box(
+            low=0,
+            high=self.maze.shape[0],
+            shape=(2, )
+        )  # [frame, task]
+        self.reward_range = [-1., 1000.]
+        # 環境を初期化
+        self.reset()
 
-    def _reset(self):
+    def reset(self):
         """necessary method
         """
-        self.done = False
         self.steps = 0
+        self.pos = [1, 0]  # はじめはframe_id=1,task=0から始まる
+        self.goal = [self.maze.shape[0], np.argmax(self.maze[-1])]  # ゴールはフレームの最後とそのtask_id
+        self.done = False
+        return self.pos
 
-    def _step(self, action):
+    def step(self, action):
         """necessary method
-        1ステップ進める処理
-        戻り値は observation, reward, done(ゲーム終了したか), info(追加の情報の辞書)
+        actionを行った処理（1回ごと）
+        return: observation(state), reward, done(episode終了判定), info(追加の情報の辞書)
         """
-        next_pos = action
+        # x座標は常に進める
+        # actionがそのままy座標となる
+        next_pos = [self.pos[0] + 1, action]
 
         if self._is_movable(next_pos):
             self.pos = next_pos
-            moved = True
         else:
-            moved = False
+            self.done = True
 
-        observation = self._observe()
-        reward = self._get_reward(self.pos, moved)
-        self.done = self._is_done()
+        # observation = self._observe()
+        observation = self.pos  # 移動先の座標を観測とする
+        reward = self._get_reward(self.pos)
+#         self.done = self._is_done()
         return observation, reward, self.done, {}
 
-    def _render(self, mode='human', close=False):
+    def render(self, mode='human', close=False):
         """necessary method
         """
+        if mode == 'rgb_array':
+            output = self.maze.copy()
+            output[self.pos[0], self.pos[1]] = 2  # 現在地を2とする
+            return output
 
-    def _get_reward(self, state, moved):
+        elif mode == 'human':
+            target = self.maze.copy()
+            target = np.argmax(target, axis=-1)  # to class_id from onehot
+            # [class_id(pred), class_id(target)]
+            output = [self.pos[1], target[self.pos[0]]]
+            return output
+
+    def _get_reward(self, pos):
         """報酬を計算
         """
-        if moved and (self.goal == state).all():
-            # ゴールにたどり着くと 100 ポイント
-            return 100
+        if self.goal == pos:
+            # ゴールにたどり着くと高い報酬を与える
+            # TODO: ゴールの報酬をいくつに設定するか？
+            return 1000
+        elif self.pos[1] == np.argmax(self.maze[self.pos[0]]):
+            # 予測のtaskと同じだと報酬を与える
+            return 1
         else:
-            # 1ステップごとに-1ポイント
-            # (できるだけ短いステップでゴールにたどり着きたい)
+            # 予測のtaskと異なるとペナルティを与える
             return -1
 
     def _is_done(self):
         """終了判定
+        TODO: これだとdoneがTrueにならない
         """
-        if (self.pos == self.goal).all():
-            return True
-        elif self.steps > self.MAX_STEPS:
+        if self.pos[0] == self.maze.shape[0]:
             return True
         else:
             return False
 
     def _observe(self):
-        # マップに現在の位置を重ねて返す
-        observation = self.MAP.copy()
-        observation[tuple(self.pos)] = self.FIELD_TYPES.index('Y')
-        return observation
+        """手術画像を入力とするときに使用
+        """
+        pass
 
-    def _generate_map(self, csv_file):
+    def _generate_maze(self, csv_file, skip_frame=1):
         df = pd.read_csv(csv_file)
         onehot = np.eye(19)[df["Steps"]]  # 19 classes
-        return onehot.T
-
-    def _find_pos(self, field_type):
-        return np.array(list(zip(*np.where(
-            self.MAP == self.FIELD_TYPES.index(field_type)
-        ))))
+        return onehot[::skip_frame]
 
     def _is_movable(self, pos):
-        # マップの中にいるか、歩けない場所にいないか
-        return (
-            0 <= pos[0] < self.MAP.shape[0]
-            and 0 <= pos[1] < self.MAP.shape[1]
-            and self.FIELD_TYPES[self.MAP[tuple(pos)]] != 'A'
-        )
+        # x軸方向に進めなくなったらFalseを返す
+        return self.goal[0] != pos[0]
