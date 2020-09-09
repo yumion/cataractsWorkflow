@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import copy
 from collections import deque
@@ -102,20 +103,24 @@ class DqnAgent:
         self.optimizer = optim.Adam(self.qnet.parameters(), lr=lr)
         self.replay_buffer = ReplayBuffer(memory_size)
 
+        self.qnet = self.qnet.to('cuda')
+        self.target_qnet = self.target_qnet.to('cuda')
+
     # Q関数を更新
     def update_q(self):
         batch = self.replay_buffer.sample(self.batch_size)
-        q = self.qnet(torch.tensor(batch["states"], dtype=torch.float))
-        targetq = copy.deepcopy(q.data.numpy())
+        q = self.qnet(torch.tensor(batch["states"], dtype=torch.float).to('cuda'))
+        targetq = copy.deepcopy(q.data)
         # maxQの計算
-        maxq = torch.max(self.target_qnet(torch.tensor(batch["next_states"], dtype=torch.float)), dim=1).values
+        maxq = torch.max(self.target_qnet(torch.tensor(batch["next_states"], dtype=torch.float).to('cuda')), dim=1).values
         # Q値が最大の行動だけQ値を更新（最大ではない行動のQ値はqとの2乗誤差が0になる）
         for i in range(self.batch_size):
             # 終端状態の場合はmaxQを0にしておくと学習が安定します（ヒント：maxq[i] * (not batch["dones"][i])）
             targetq[i, batch["actions"][i]] = batch["rewards"][i] + self.gamma * maxq[i] * (not batch["dones"][i])
         self.optimizer.zero_grad()
         # lossとしてMSEを利用
-        loss = nn.MSELoss()(q, torch.tensor(targetq))
+        mse_loss = nn.MSELoss().to('cuda')
+        loss = mse_loss(q, torch.tensor(targetq).to('cuda'))
         loss.backward()
         self.optimizer.step()
         # ターゲットネットワークのパラメータを更新
@@ -124,7 +129,7 @@ class DqnAgent:
     # Q値が最大の行動を選択
     def get_greedy_action(self, state):
         state_tensor = torch.tensor(state, dtype=torch.float).view(-1, self.num_state)
-        action = torch.argmax(self.qnet(state_tensor).data).item()
+        action = torch.argmax(self.qnet(state_tensor.to('cuda')).data).item()
         return action
 
     # ε-greedyに行動を選択
@@ -138,6 +143,13 @@ class DqnAgent:
 
 
 if __name__ == '__main__':
+    # 0:TITAN V,1:Quadro RTX8000, 2: TITAN RTX
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
+    # Set random seed
+    np.random.seed(124)
+    torch.manual_seed(124)
+    torch.cuda.manual_seed(124)
 
     # 各種設定
     csv_file = '/data1/github/MICCAI2020/cataractsWorkflow/data/train/01/train01.csv'
@@ -167,7 +179,7 @@ if __name__ == '__main__':
         agent.replay_buffer.append(transition)
         state = env.reset() if done else next_state
 
-    for episode in range(num_episode):
+    for episode in tqdm(range(num_episode)):
         state = env.reset()  # envからは4次元の連続値の観測が返ってくる
         episode_reward = 0
         done = False
@@ -188,7 +200,7 @@ if __name__ == '__main__':
             state = next_state
 
         episode_rewards.append(episode_reward)
-        if episode % 20 == 0:
+        if episode % 10 == 0:
             print("Episode %d finished | Episode reward %f" % (episode, episode_reward))
 
     # 累積報酬の移動平均を表示
