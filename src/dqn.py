@@ -98,7 +98,7 @@ class DqnAgent:
         self.num_action = num_action
         self.gamma = gamma  # 割引率
         self.batch_size = batch_size  # Q関数の更新に用いる遷移の数
-        self.qnet = QNetwork(num_state, num_action)
+        self.qnet = QNetwork(num_state, num_action).to('cuda')
         self.target_qnet = copy.deepcopy(self.qnet)  # ターゲットネットワーク
         self.optimizer = optim.Adam(self.qnet.parameters(), lr=lr)
         self.replay_buffer = ReplayBuffer(memory_size)
@@ -106,17 +106,18 @@ class DqnAgent:
     # Q関数を更新
     def update_q(self):
         batch = self.replay_buffer.sample(self.batch_size)
-        q = self.qnet(torch.tensor(batch["states"], dtype=torch.float))
-        targetq = copy.deepcopy(q.data.numpy())
+        q = self.qnet(torch.tensor(batch["states"], dtype=torch.float).to('cuda'))
+        targetq = copy.deepcopy(q.data)
         # maxQの計算
-        maxq = torch.max(self.target_qnet(torch.tensor(batch["next_states"], dtype=torch.float)), dim=1).values
+        maxq = torch.max(self.target_qnet(torch.tensor(batch["next_states"], dtype=torch.float).to('cuda')), dim=1).values
         # Q値が最大の行動だけQ値を更新（最大ではない行動のQ値はqとの2乗誤差が0になる）
         for i in range(self.batch_size):
             # 終端状態の場合はmaxQを0にしておくと学習が安定します（ヒント：maxq[i] * (not batch["dones"][i])）
             targetq[i, batch["actions"][i]] = batch["rewards"][i] + self.gamma * maxq[i] * (not batch["dones"][i])
         self.optimizer.zero_grad()
         # lossとしてMSEを利用
-        loss = nn.MSELoss()(q, torch.tensor(targetq))
+        mse_loss = nn.MSELoss().to('cuda')
+        loss = mse_loss(q, targetq)
         loss.backward()
         self.optimizer.step()
         # ターゲットネットワークのパラメータを更新
@@ -124,7 +125,7 @@ class DqnAgent:
 
     # Q値が最大の行動を選択
     def get_greedy_action(self, state):
-        state_tensor = torch.tensor(state, dtype=torch.float).view(-1, self.num_state)
+        state_tensor = torch.tensor(state, dtype=torch.float).view(-1, self.num_state).to('cuda')
         action = torch.argmax(self.qnet(state_tensor).data).item()
         return action
 
@@ -146,6 +147,13 @@ class DqnAgent:
 
 
 if __name__ == '__main__':
+    # Set random seed
+    np.random.seed(124)
+    torch.manual_seed(124)
+    torch.cuda.manual_seed(124)
+
+    # 0:TITAN V,1:Quadro RTX8000, 2: TITAN RTX
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
     # 各種設定
     csv_file = '/data1/github/MICCAI2020/cataractsWorkflow/data/train/01/train01.csv'
@@ -156,6 +164,7 @@ if __name__ == '__main__':
 
     # ログ
     os.makedirs(result_dir, exist_ok=True)
+    os.makedirs(os.path.join(result_dir, 'model'), exist_ok=True)
     episode_rewards = []
     num_average_epidodes = 10
 
@@ -200,7 +209,9 @@ if __name__ == '__main__':
         episode_rewards.append(episode_reward)
         if episode % 10 == 0:
             print("Episode %d finished | Episode reward %f" % (episode, episode_reward))
-            agent.save_model(save_path=os.path.join(result_dir, 'checkpoint.pth'))
+            agent.save_model(save_path=os.path.join(result_dir, 'model', f'checkpoint_ep{episode}.pth'))
+
+    agent.save_model(save_path=os.path.join(result_dir, 'model', 'last_model.pth'))
 
     # 累積報酬の移動平均を表示
     moving_average = np.convolve(episode_rewards, np.ones(num_average_epidodes) / num_average_epidodes, mode='valid')
