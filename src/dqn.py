@@ -157,19 +157,40 @@ if __name__ == '__main__':
     torch.cuda.manual_seed(124)
 
     # 各種設定
-    csv_file = '/data1/github/MICCAI2020/cataractsWorkflow/data/train/01/train01.csv'
-    result_dir = 'result/dqn/train01'
-    num_episode = 100  # 学習エピソード数
+    csv_files = ['/data1/github/MICCAI2020/cataractsWorkflow/data/train/01/train01.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/02/train02.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/03/train03.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/04/train04.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/05/train05.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/06/train06.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/07/train07.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/08/train08.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/09/train09.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/10/train10.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/11/train11.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/12/train12.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/13/train13.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/14/train14.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/15/train15.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/16/train16.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/17/train17.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/18/train18.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/19/train19.csv',
+                 '/data1/github/MICCAI2020/cataractsWorkflow/data/train/20/train20.csv']
+
+    result_dir = 'result/dqn/all_trains'
+    os.makedirs(os.path.join(result_dir, 'model'), exist_ok=True)
+
+    num_episode = 1000  # 学習エピソード数
     memory_size = 100000  # replay bufferの大きさ
     initial_memory_size = 1000  # 最初に貯めるランダムな遷移の数
 
     # ログ
     os.makedirs(result_dir, exist_ok=True)
-    os.makedirs(os.path.join(result_dir, 'model'), exist_ok=True)
     episode_rewards = []
     num_average_epidodes = 10
 
-    env = ProcedureMaze(csv_file=csv_file, skip_frame=1)
+    env = ProcedureMaze(csv_file=np.random.choice(csv_files), skip_frame=1)
     agent = DqnAgent(env.observation_space.shape[0], env.action_space.n, memory_size=memory_size)
 
     # 最初にreplay bufferにランダムな行動をしたときのデータを入れる
@@ -186,8 +207,12 @@ if __name__ == '__main__':
         }
         agent.replay_buffer.append(transition)
         state = env.reset() if done else next_state
+    env.close()
 
     for episode in tqdm(range(num_episode)):
+        # episodeごとに迷路を変える
+        env = ProcedureMaze(csv_file=np.random.choice(csv_files), skip_frame=1)
+
         state = env.reset()
         episode_reward = 0
         done = False
@@ -212,6 +237,8 @@ if __name__ == '__main__':
             print("Episode %d finished | Episode reward %f" % (episode, episode_reward))
             agent.save_model(save_path=os.path.join(result_dir, 'model', f'checkpoint_ep{episode}.pth'))
 
+        env.close()
+
     agent.save_model(save_path=os.path.join(result_dir, 'model', 'last_model.pth'))
 
     # 累積報酬の移動平均を表示
@@ -223,10 +250,8 @@ if __name__ == '__main__':
     # plt.show()
     plt.savefig(os.path.join(result_dir, 'train_rewards.png'))
 
-    env.close()
-
     # 最終的に得られた方策のテスト（可視化）
-    for episode in range(1):
+    for csv_file in csv_files:
         env = ProcedureMaze(csv_file=csv_file, skip_frame=1)
         frames = []
 
@@ -256,6 +281,6 @@ if __name__ == '__main__':
         plt.plot(preds)
         plt.plot(targets)
         # plt.show()
-        plt.savefig(os.path.join(result_dir, f'test_pred{episode}.png'))
+        plt.savefig(os.path.join(result_dir, f"test_{os.path.basename(csv_file).rstrip('.csv')}.png"))
 
         env.close()
