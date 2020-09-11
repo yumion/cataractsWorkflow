@@ -104,6 +104,9 @@ class DqnAgent:
         self.optimizer = optim.Adam(self.qnet.parameters(), lr=lr)
         self.replay_buffer = ReplayBuffer(memory_size)
 
+        self.qnet = self.qnet.to('cuda')
+        self.target_qnet = self.target_qnet.to('cuda')
+
     # Q関数を更新
     def update_q(self):
         batch = self.replay_buffer.sample(self.batch_size)
@@ -152,9 +155,6 @@ if __name__ == '__main__':
     np.random.seed(124)
     torch.manual_seed(124)
     torch.cuda.manual_seed(124)
-
-    # 0:TITAN V,1:Quadro RTX8000, 2: TITAN RTX
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
     # 各種設定
     csv_file = '/data1/github/MICCAI2020/cataractsWorkflow/data/train/01/train01.csv'
