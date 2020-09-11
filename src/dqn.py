@@ -3,6 +3,7 @@ import numpy as np
 import copy
 from collections import deque
 from tqdm import tqdm
+import csv
 
 import torch
 import torch.nn as nn
@@ -237,6 +238,13 @@ if __name__ == '__main__':
             state, reward, done, _ = env.step(action)
             frames.append(env.render(mode='human'))
 
+        # 予測をcsvで保存
+        with open(f'pred_{os.path.basename(csv_file)}', 'w') as fw:
+            writer = csv.writer(fw)
+            writer.writerow(['Frame', 'Steps'])
+            writer.writerows(np.asarray(list(enumerate(np.array(frames[:, 0]), 1)), dtype=np.int))
+
+        # 予測をグラフで保存
         preds = []
         targets = []
         for frame in frames[:]:
