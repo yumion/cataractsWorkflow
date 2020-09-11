@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import copy
 from collections import deque
@@ -27,7 +28,7 @@ SARSAとQ-learningでTDターゲット$y_t$の求め方が異なります．$$y^
   - $\gamma$：**割引率**
 
 
-#### 2.2.1 Deep Q-Network（DQN）
+# 2.2.1 Deep Q-Network（DQN）
 DQN（Deep Q-Network）は，Q関数をNNによって近似した手法です．Q-learningのTD誤差は，$$\delta_t = r_{t+1}+\gamma \max_{a'}Q^{\pi}(s_{t+1},a') - Q^{\pi}(s_t,a_t)$$であるので，$r_{t+1}+\gamma \max_{a'}Q^{\pi}(s_{t+1},a')$と$Q^{\pi}(s_t,a_t)$の差の最小化をすればいいことがわかります．
 - 今回の実装ではMSEを用いています．
 
@@ -136,16 +137,25 @@ class DqnAgent:
             action = np.random.choice(self.num_action)
         return action
 
+    def save_model(self, save_path='last_model.pth'):
+        torch.save(self.qnet, save_path)
+
+    def load_model(self, model_path):
+        self.qnet = torch.load(model_path)
+        self.target_qnet = copy.deepcopy(self.qnet)
+
 
 if __name__ == '__main__':
 
     # 各種設定
     csv_file = '/data1/github/MICCAI2020/cataractsWorkflow/data/train/01/train01.csv'
-    num_episode = 300  # 学習エピソード数
-    memory_size = 50000  # replay bufferの大きさ
-    initial_memory_size = 500  # 最初に貯めるランダムな遷移の数
+    result_dir = 'result/dqn/train01'
+    num_episode = 100  # 学習エピソード数
+    memory_size = 100000  # replay bufferの大きさ
+    initial_memory_size = 1000  # 最初に貯めるランダムな遷移の数
 
     # ログ
+    os.makedirs(result_dir, exist_ok=True)
     episode_rewards = []
     num_average_epidodes = 10
 
@@ -167,8 +177,8 @@ if __name__ == '__main__':
         agent.replay_buffer.append(transition)
         state = env.reset() if done else next_state
 
-    for episode in range(num_episode):
-        state = env.reset()  # envからは4次元の連続値の観測が返ってくる
+    for episode in tqdm(range(num_episode)):
+        state = env.reset()
         episode_reward = 0
         done = False
 
@@ -188,8 +198,9 @@ if __name__ == '__main__':
             state = next_state
 
         episode_rewards.append(episode_reward)
-        if episode % 20 == 0:
+        if episode % 10 == 0:
             print("Episode %d finished | Episode reward %f" % (episode, episode_reward))
+            agent.save_model(save_path=os.path.join(result_dir, 'checkpoint.pth'))
 
     # 累積報酬の移動平均を表示
     moving_average = np.convolve(episode_rewards, np.ones(num_average_epidodes) / num_average_epidodes, mode='valid')
@@ -198,7 +209,7 @@ if __name__ == '__main__':
     plt.xlabel('episode')
     plt.ylabel('rewards')
     # plt.show()
-    plt.savefig('train_rewards.png')
+    plt.savefig(os.path.join(result_dir, 'train_rewards.png'))
 
     env.close()
 
@@ -221,11 +232,11 @@ if __name__ == '__main__':
             preds.append(frame[0])
             targets.append(frame[1])
 
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(16, 6))
         plt.yticks(np.arange(0, 19, 1))
         plt.plot(preds)
         plt.plot(targets)
         # plt.show()
-        plt.savefig(f'test_pred{episode}.png')
+        plt.savefig(os.path.join(result_dir, f'test_pred{episode}.png'))
 
         env.close()

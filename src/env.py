@@ -64,11 +64,11 @@ class ProcedureMaze(gym.Env):
         """
         current_task = np.argmax(self.maze[pos[0] - 1])
         if pos[1] == current_task == 0:
-            # 予測のtaskと同じ(Idle)だと少ない報酬を与える
-            return 1
+            # 予測のtaskと同じでもIdle(0)だと少ない報酬を与える
+            return 0
         elif pos[1] == current_task:
             # 予測のtaskと同じ(Idle以外)だと大きな報酬を与える
-            return 10
+            return 1
         else:
             # 予測のtaskと異なるとペナルティを与える
             return -1
