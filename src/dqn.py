@@ -58,7 +58,7 @@ DQN（Deep Q-Network）は，Q関数をNNによって近似した手法です．
 
 
 class QNetwork(nn.Module):
-    def __init__(self, num_state, num_action, hidden_size=16):
+    def __init__(self, num_state, num_action, hidden_size=64):
         super(QNetwork, self).__init__()
         self.fc1 = nn.Linear(num_state, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
@@ -137,25 +137,47 @@ class DqnAgent:
 
     # 工程の遷移頻度割合でQ値に重み付けしてargmaxする
     def get_weighted_action(self, state, previous_action, offset=1.):
+        # 連続する工程は無視
+        # class_weights = torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        #                               [0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        #                               [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        #                               [0., 0., 0., 0., 0.86666667, 0.03333333, 0., 0., 0., 0.03333333, 0., 0., 0., 0.06666667, 0., 0., 0., 0., 0.],
+        #                               [0., 0., 0.07017544, 0.03508772, 0., 0.42105263, 0., 0., 0., 0.01754386, 0., 0.21052632, 0., 0.22807018, 0.01754386, 0., 0., 0., 0.],
+        #                               [0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        #                               [0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        #                               [0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        #                               [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+        #                               [0., 0., 0., 0.14285714, 0.14285714, 0., 0., 0., 0., 0., 0., 0., 0.71428571, 0., 0., 0., 0., 0., 0.],
+        #                               [0., 0., 0., 0., 0.96, 0., 0., 0., 0., 0., 0., 0., 0.04, 0., 0., 0., 0., 0., 0.],
+        #                               [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.],
+        #                               [0., 0., 0., 0., 0.16666667, 0., 0., 0., 0., 0.66666667, 0., 0., 0., 0., 0., 0., 0., 0.16666667, 0.],
+        #                               [0., 0., 0., 0.07407407, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.92592593, 0., 0., 0., 0.],
+        #                               [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.02777778, 0., 0., 0., 0., 0.02777778, 0.66666667, 0.02777778, 0.19444444, 0.05555556],
+        #                               [0., 0., 0., 0., 0.04, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.04, 0.04, 0.04, 0., 0.84],
+        #                               [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.2, 0., 0., 0., 0.8],
+        #                               [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.875, 0., 0.125, 0., 0.],
+        #                               [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.66666667, 0.33333333, 0.]],
+        #                              dtype=torch.float).to('cuda')
+        # 連続する工程も考慮（工程0は除く）
         class_weights = torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                                      [0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                                      [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                                      [0., 0., 0., 0., 0.86666667, 0.03333333, 0., 0., 0., 0.03333333, 0., 0., 0., 0.06666667, 0., 0., 0., 0., 0.],
-                                      [0., 0., 0.07017544, 0.03508772, 0., 0.42105263, 0., 0., 0., 0.01754386, 0., 0.21052632, 0., 0.22807018, 0.01754386, 0., 0., 0., 0.],
-                                      [0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                                      [0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                                      [0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
-                                      [0., 0., 0., 0.14285714, 0.14285714, 0., 0., 0., 0., 0., 0., 0., 0.71428571, 0., 0., 0., 0., 0., 0.],
-                                      [0., 0., 0., 0., 0.96, 0., 0., 0., 0., 0., 0., 0., 0.04, 0., 0., 0., 0., 0., 0.],
-                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.],
-                                      [0., 0., 0., 0., 0.16666667, 0., 0., 0., 0., 0.66666667, 0., 0., 0., 0., 0., 0., 0., 0.16666667, 0.],
-                                      [0., 0., 0., 0.07407407, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.92592593, 0., 0., 0., 0.],
-                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.02777778, 0., 0., 0., 0., 0.02777778, 0.66666667, 0.02777778, 0.19444444, 0.05555556],
-                                      [0., 0., 0., 0., 0.04, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.04, 0.04, 0.04, 0., 0.84],
-                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.2, 0., 0., 0., 0.8],
-                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.875, 0., 0.125, 0., 0.],
-                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.66666667, 0.33333333, 0.]],
+                                      [0., 0.9989, 0., 0.0011, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                                      [0., 0., 0.9986, 0., 0.0014, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                                      [0., 0., 0., 0.9984, 0.0014, 0.0001, 0., 0., 0., 0.0001, 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.],
+                                      [0., 0., 0.0003, 0.0002, 0.9954, 0.0019, 0., 0., 0., 0.0001, 0., 0.001, 0., 0.0011, 0.0001, 0., 0., 0., 0.],
+                                      [0., 0., 0., 0., 0., 0.9992, 0.0008, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                                      [0., 0., 0., 0., 0., 0., 0.9976, 0.0024, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                                      [0., 0., 0., 0., 0., 0., 0., 0.9992, 0.0008, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                                      [0., 0., 0., 0., 0., 0., 0., 0., 0.9995, 0., 0.0005, 0., 0., 0., 0., 0., 0., 0., 0.],
+                                      [0., 0., 0., 0.0001, 0.0001, 0., 0., 0., 0., 0.9995, 0., 0., 0.0004, 0., 0., 0., 0., 0., 0.],
+                                      [0., 0., 0., 0., 0.0005, 0., 0., 0., 0., 0., 0.9995, 0., 0., 0., 0., 0., 0., 0., 0.],
+                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.999, 0., 0.001, 0., 0., 0., 0., 0.],
+                                      [0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.0004, 0., 0., 0.9995, 0., 0., 0., 0., 0.0001, 0.],
+                                      [0., 0., 0., 0.0002, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.9972, 0.0026, 0., 0., 0., 0.],
+                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.9987, 0.0009, 0., 0.0003, 0.0001],
+                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.9992, 0., 0., 0.0007],
+                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.0001, 0., 0.9995, 0., 0.0004],
+                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.0014, 0., 0.0002, 0.9984, 0.],
+                                      [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.0001, 0., 0.9999]],
                                      dtype=torch.float).to('cuda')
 
         state_tensor = torch.tensor(state, dtype=torch.float).view(-1, self.num_state).to('cuda')
@@ -190,32 +212,32 @@ if __name__ == '__main__':
 
     # 各種設定
     csv_files = [
-        '/data1/github/MICCAI2020/cataractsWorkflow/data/train/01/train01.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/02/train02.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/03/train03.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/04/train04.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/05/train05.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/06/train06.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/07/train07.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/08/train08.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/09/train09.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/10/train10.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/11/train11.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/12/train12.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/13/train13.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/14/train14.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/15/train15.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/16/train16.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/17/train17.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/18/train18.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/19/train19.csv',
-        # '/data1/github/MICCAI2020/cataractsWorkflow/data/train/20/train20.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/01/train01.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/02/train02.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/03/train03.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/04/train04.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/05/train05.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/06/train06.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/07/train07.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/08/train08.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/09/train09.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/10/train10.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/11/train11.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/12/train12.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/13/train13.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/14/train14.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/15/train15.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/16/train16.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/17/train17.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/18/train18.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/19/train19.csv',
+        '/mnt/cloudy_z/input/cataractsWorkflow/train/20/train20.csv',
     ]
 
-    result_dir = 'result/dqn/weighted_train01'
+    result_dir = 'result/dqn/weighted_trains_all'
     os.makedirs(os.path.join(result_dir, 'model'), exist_ok=True)
 
-    num_episode = 500  # 学習エピソード数
+    num_episode = 1000  # 学習エピソード数
     memory_size = 100000  # replay bufferの大きさ
     initial_memory_size = 1000  # 最初に貯めるランダムな遷移の数
 
@@ -254,7 +276,7 @@ if __name__ == '__main__':
         done = False
 
         while not done:
-            action = agent.get_action(state, episode, previous_action=previous_action)  # 行動を選択
+            action = agent.get_action(state, episode, previous_action=previous_action, offset=0.)  # 行動を選択
             next_state, reward, done, _ = env.step(action)
             episode_reward += reward
             transition = {

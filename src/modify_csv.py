@@ -49,14 +49,14 @@ def get_start2end_id(csv_file, save_path):
         # csvにdumpする
         with open(os.path.join(save_path, "start_end_id.csv"), "w") as fw:
             writer = csv.writer(fw)
-            header = ["start_frame_id", "end_frame_id", "class_id"]
-            writer.writerow(header)
+            # header = ["start_frame_id", "end_frame_id", "class_id"]
+            # writer.writerow(header)
             writer.writerows(annotations)
 
 
 if __name__ == "__main__":
-    target_dir = "/data1/github/MICCAI2020/cataractsWorkflow/data/train"
-    save_dir = "/data1/github/MICCAI2020/farmer/example/data/cataractsWorkflow/train"
+    target_dir = "/mnt/cloudy_z/input/cataractsWorkflow/train"
+    save_dir = "/mnt/cloudy_z/src/atsushi/farmer/example/data/cataractsWorkflow/train"
 
     for video_dir in sorted(glob(os.path.join(target_dir, "[0-9][0-9]"))):
         csv_file = glob(os.path.join(video_dir, "*.csv"))[0]
@@ -69,7 +69,7 @@ if __name__ == "__main__":
             os.makedirs(save_path, exist_ok=True)
 
             video_file = csv_file.replace(".csv", ".mp4")
-            shutil.copy(video_file, save_path)
+            # shutil.copy(video_file, save_path)
         else:
             save_path = video_dir
 

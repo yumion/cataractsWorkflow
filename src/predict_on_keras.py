@@ -121,8 +121,8 @@ if __name__ == '__main__':
     import ssl
     ssl._create_default_https_context = ssl._create_unverified_context
 
-    # 0:TITAN V, 1:Quadro RTX8000, 2: TITAN RTX
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    # 0:TITAN V,1:Quadro RTX8000, 2: TITAN RTX
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
     # GPUメモリ使用量を抑える
     physical_devices = tf.config.experimental.list_physical_devices('GPU')
