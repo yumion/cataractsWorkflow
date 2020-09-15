@@ -85,12 +85,12 @@ class Config:
     DATA_DIR: str = '/data1/github/MICCAI2020/cataractsWorkflow/data'
     TEST_DIRS: list = field(default_factory=list)
 
-    RESULT_DIR: str = "/data1/github/MICCAI2020/cataractsWorkflow/result/cnn_only/tf-xception-skipframe=1/predict"
-    TRAINED_MODEL: str = "/data1/github/MICCAI2020/cataractsWorkflow/result/cnn_only/tf-xception-skipframe=1/model/best_model.h5"
+    RESULT_DIR: str = "/data1/github/MICCAI2020/cataractsWorkflow/result/cnn_only/tf-xception-skipframe=1_trial2/predict"
+    TRAINED_MODEL: str = "/data1/github/MICCAI2020/cataractsWorkflow/result/cnn_only/tf-xception-skipframe=1_trial2/model/best_model.h5"
 
     # input data config
-    HEIGHT: int = 640
-    WIDTH: int = 360
+    HEIGHT: int = 360
+    WIDTH: int = 640
     SKIP_FRAME: int = 1
     # augmentation
     TEST_AUGORATION: list = field(default_factory=list)
@@ -102,13 +102,33 @@ class Config:
         ]
 
         self.TEST_DIRS = [
+            # 'train/01',
+            # 'train/02',
+            # 'train/03',
+            # 'train/04',
+            # 'train/05',
+            # 'train/06',
+            # 'train/07',
+            'train/08',
+            'train/09',
+            'train/10',
+            'train/11',
+            'train/12',
+            'train/13',
+            'train/14',
+            'train/15',
+            'train/16',
+            'train/17',
+            'train/18',
+            'train/19',
+            'train/20',
             # 'train/21',
             # 'train/22',
             # 'train/23',
             # 'train/24',
             # 'train/25',
-            'validation/01',
-            'validation/02',
+            # 'validation/01',
+            # 'validation/02',
             'validation/03',
             'validation/04',
             'validation/05',
@@ -122,7 +142,7 @@ if __name__ == '__main__':
     ssl._create_default_https_context = ssl._create_unverified_context
 
     # 0:TITAN V,1:Quadro RTX8000, 2: TITAN RTX
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
     # GPUメモリ使用量を抑える
     physical_devices = tf.config.experimental.list_physical_devices('GPU')
